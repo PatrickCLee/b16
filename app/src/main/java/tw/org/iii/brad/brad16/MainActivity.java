@@ -13,6 +13,8 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageRequest;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 
 import org.json.JSONArray;
@@ -98,14 +100,42 @@ public class MainActivity extends AppCompatActivity {
                 },
                 0,0,            //3.4.為指定的寬高;0,0則為原圖尺寸
                 Bitmap.Config.ARGB_8888,            //5.調色盤
-                null                    //6. ErrorListener
+                null                    //6.Response.ErrorListener
         );
 
         MainApp.queue.add(request);                 //一樣queue去add request
     }
 
     public void test4(View view){
-//        StringRequest request = new StringRequest();
-//        MainApp.queue.add(request);
+        JsonArrayRequest request = new JsonArrayRequest(//若知道要解的是JsonArray則可用此,但與test2的StringRequest相去無幾,只差一個參數
+                "https://data.coa.gov.tw/Service/OpenData/ODwsv/ODwsvTravelFood.aspx",//1.URL
+                new Response.Listener<JSONArray>() {    //2.Response.Listener泛型JSONArray
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        parseJSON2(response);
+                    }
+                },
+                new Response.ErrorListener() {          //3.Response.ErrorListener
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+
+                    }
+                }
+        );
+        MainApp.queue.add(request);
+    }
+
+    private void parseJSON2(JSONArray root){
+        mesg.setText("");
+        try {
+//            JSONArray root = new JSONArray(json);   且少掉這行
+            for (int i=0; i<root.length(); i++){
+                JSONObject row = root.getJSONObject(i);
+                mesg.append(row.getString("Name")+
+                        ":"+row.get("Address")+"\n");
+            }
+        }catch(Exception e){
+            Log.v("brad",e.toString());
+        }
     }
 }

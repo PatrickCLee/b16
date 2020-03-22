@@ -27,7 +27,7 @@ public class BradInputStreamRequest extends Request<byte[]> {
     }
 
     @Override
-    public Map<String, String> getParams() {
+    public Map<String, String> getParams() {    //看似沒改寫,但此處回傳的是我們定義的泛型類別,若我們定義不同的泛型類別則此處也會更改
         return params;
     }
 

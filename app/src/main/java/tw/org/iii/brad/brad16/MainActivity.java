@@ -1,14 +1,22 @@
 package tw.org.iii.brad.brad16;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -20,16 +28,46 @@ import com.android.volley.toolbox.StringRequest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
     private TextView mesg;
     private ImageView img;
+    private String[] permissions = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (ContextCompat.checkSelfPermission(this, //要權限
+                Manifest.permission.READ_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    permissions,   //有哪些權限想要取得,可塞入多樣
+                    123);
+        }else{
+            init();
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,     //要求權限的結果
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {  //若取得權限
+            init();
+        }
+    }
+
+    private void init(){
         mesg = findViewById(R.id.mesg);
         img = findViewById(R.id.img);
     }
@@ -140,4 +178,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    public void test5(View view) {
+        BradInputStreamRequest request = new BradInputStreamRequest(
+                Request.Method.GET,
+                "https://pdfmyurl.com/?url=https://www.pchome.com.tw",
+                new Response.Listener<byte[]>() {
+                    @Override
+                    public void onResponse(byte[] response) {
+                        savePDF(response);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.v("brad",error.toString());
+                    }
+                },
+                null
+        );
+        request.setRetryPolicy(new DefaultRetryPolicy( //傳入已經實做的RetryPolicy
+                20*1000,                //1.maximum等待的時間
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,//2.3.都為預設
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        ));
+
+        MainApp.queue.add(request);
+    }
+
+    private void savePDF(byte[] data){
+        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File saveFile = new File(downloadDir,"brad.pdf");
+        try {
+            BufferedOutputStream bout =
+                    new BufferedOutputStream(new FileOutputStream(saveFile));
+            bout.write(data);
+            bout.flush();
+            bout.close();
+            Toast.makeText(this, "Save OK", Toast.LENGTH_SHORT).show();
+        }catch (Exception e){
+            Log.v("brad",e.toString());
+        }
+    }
 }
